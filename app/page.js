@@ -28,28 +28,6 @@ export default function Home() {
     }
   };
 
-  const handleAddToFavorites = async () => {
-    if (weatherData) {
-      try {
-        const response = await fetch("/api/addToFavorites", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ weatherData }),
-        });
-
-        if (response.ok) {
-          alert("Added to favorites successfully");
-        } else {
-          throw new Error("Failed to add to favorites");
-        }
-      } catch (err) {
-        setFavoriteError(err.message);
-      }
-    }
-  };
-
   const isValidLatLon = (lat, lon) => {
     const latNum = parseFloat(lat);
     const lonNum = parseFloat(lon);
