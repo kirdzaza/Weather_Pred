@@ -1,5 +1,6 @@
 // src/app/Nav.js
 import React from "react";
+import Link from "next/link";
 
 function Nav() {
   return (
@@ -9,24 +10,28 @@ function Nav() {
         <nav>
           <ul className="flex space-x-4">
             <li>
-              <a href="#" className="block py-2 px-4 hover:bg-gray-700 rounded">
+              <Link
+                href="/"
+                className="block py-2 px-4 hover:bg-gray-700 rounded"
+              >
                 Home
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#" className="block py-2 px-4 hover:bg-gray-700 rounded">
+              <Link
+                href="/FavoritePage"
+                className="block py-2 px-4 hover:bg-gray-700 rounded"
+              >
                 Favorite
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#" className="block py-2 px-4 hover:bg-gray-700 rounded">
-                Services
-              </a>
-            </li>
-            <li>
-              <a href="#" className="block py-2 px-4 hover:bg-gray-700 rounded">
+              <Link
+                href="https://github.com/kirdzaza"
+                className="block py-2 px-4 hover:bg-gray-700 rounded"
+              >
                 Contact
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>
