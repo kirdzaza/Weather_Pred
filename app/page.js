@@ -8,7 +8,6 @@ export default function Home() {
   const [coordinates, setCoordinates] = useState("");
   const [weatherData, setWeatherData] = useState(null);
   const [error, setError] = useState("");
-  const [favoriteError, setFavoriteError] = useState("");
 
   const handleSearch = async () => {
     const [lat, lon] = coordinates.split(",").map((coord) => coord.trim());

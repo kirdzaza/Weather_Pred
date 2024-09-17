@@ -19,12 +19,29 @@ function Nav() {
             </li>
             <li>
               <Link
-                href="/FavoritePage"
+                href="/currentP"
                 className="block py-2 px-4 hover:bg-gray-700 rounded"
               >
-                Favorite
+                Current Weather Page
               </Link>
             </li>
+            <li>
+              <Link
+                href="/AQP"
+                className="block py-2 px-4 hover:bg-gray-700 rounded"
+              >
+                Air Quality Page
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/forecastP"
+                className="block py-2 px-4 hover:bg-gray-700 rounded"
+              >
+                Forecast Page
+              </Link>
+            </li>
+
             <li>
               <Link
                 href="https://github.com/kirdzaza"
