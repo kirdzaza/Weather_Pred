@@ -6,44 +6,79 @@ import getAirQuality from "../api/airQuality"; // Ensure correct API import
 import Nav from "../Nav"; // Ensure correct import path
 
 export default function CurrentWeather() {
-  const [weatherData, setWeatherData] = useState(null);
-  const [airQualityData, setAirQualityData] = useState(null);
+  const [weatherData, setWeatherData] = useState([]);
+  const [airQualityData, setAirQualityData] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [lat, setLat] = useState(15); // Default latitude
-  const [lon, setLon] = useState(100); // Default longitude
   const [additionalCoordinates, setAdditionalCoordinates] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newLat, setNewLat] = useState("");
+  const [newLon, setNewLon] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const data = await getWeather(lat, lon);
-        const Adata = await getAirQuality(lat, lon);
-        setWeatherData(data);
-        setAirQualityData(Adata);
+        // Fetch weather data for the default coordinates
+        const defaultWeather = await getWeather(15, 100); // Default coordinates
+        const defaultAirQuality = await getAirQuality(15, 100); // Default coordinates
+        const defaultWeatherData = [defaultWeather];
+        const defaultAirQualityData = [defaultAirQuality];
+
+        // Fetch weather and air quality data for all additional coordinates
+        const additionalWeatherPromises = additionalCoordinates.map(
+          async (coord) => {
+            return getWeather(coord.lat, coord.lon);
+          }
+        );
+        const additionalAirQualityPromises = additionalCoordinates.map(
+          async (coord) => {
+            return getAirQuality(coord.lat, coord.lon);
+          }
+        );
+
+        const additionalWeatherData = await Promise.all(
+          additionalWeatherPromises
+        );
+        const additionalAirQualityData = await Promise.all(
+          additionalAirQualityPromises
+        );
+
+        // Combine the default and additional weather and air quality data
+        setWeatherData([...defaultWeatherData, ...additionalWeatherData]);
+        setAirQualityData([
+          ...defaultAirQualityData,
+          ...additionalAirQualityData,
+        ]);
         setLoading(false);
       } catch (err) {
-        setError("Error fetching weather data.");
+        setError("Error fetching data.");
         console.error(err);
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [lat, lon]);
+  }, [additionalCoordinates]);
 
-  const handleAddMoreCoordinates = () => {
-    const newLat = parseFloat(prompt("Enter latitude:"));
-    const newLon = parseFloat(prompt("Enter longitude:"));
-
-    if (!isNaN(newLat) && !isNaN(newLon)) {
-      setLat(newLat);
-      setLon(newLon);
+  const handleAddCoordinates = () => {
+    if (!isNaN(parseFloat(newLat)) && !isNaN(parseFloat(newLon))) {
       setAdditionalCoordinates([
         ...additionalCoordinates,
-        { lat: newLat, lon: newLon },
+        { lat: parseFloat(newLat), lon: parseFloat(newLon) },
       ]);
+      setNewLat("");
+      setNewLon("");
+      setIsModalOpen(false);
+    } else {
+      alert("Please enter valid numbers for latitude and longitude.");
     }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setNewLat("");
+    setNewLon("");
   };
 
   if (loading)
@@ -58,83 +93,124 @@ export default function CurrentWeather() {
       </div>
     );
 
-  const temperature = (weatherData.main.temp - 273.15).toFixed(1); // Convert from Kelvin to Celsius
-  const weatherIcon = `http://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png`;
-
   return (
     <div className="bg-gray-100 min-h-screen pt-16">
       <Nav />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
-          Current Weather
+          Current Weather and Air Quality
         </h1>
-        <button
-          onClick={handleAddMoreCoordinates}
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg mb-6 hover:bg-blue-600 transition-colors"
-        >
-          Add More Coordinates
-        </button>
-        <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
-          <div className="flex items-center mb-4">
-            <img
-              src={weatherIcon}
-              alt={weatherData.weather[0].description}
-              className="w-16 h-16 mr-4"
-            />
-            <div className="text-xl font-semibold text-gray-700">
-              {weatherData.weather[0].main}
+        <div className="text-center mb-6">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Add More Coordinates
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {weatherData.map((data, index) => {
+            const temperature = data.main.temp.toFixed(1); // Convert from Kelvin to Celsius
+            const weatherIcon = `http://openweathermap.org/img/wn/${data.weather[0].icon}.png`;
+            const airQuality = airQualityData[index];
+
+            return (
+              <div
+                key={index}
+                className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg"
+              >
+                <div className="flex items-center mb-4">
+                  <img
+                    src={weatherIcon}
+                    alt={data.weather[0].description}
+                    className="w-16 h-16 mr-4"
+                  />
+                  <div className="text-xl font-semibold text-gray-700">
+                    {data.weather[0].main}
+                  </div>
+                </div>
+                <p className="text-gray-600">
+                  <strong>Location:</strong> {data.name}, {data.sys.country}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Coordinates:</strong> Lat {data.coord.lat}, Lon{" "}
+                  {data.coord.lon}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Temperature:</strong> {temperature}°C
+                </p>
+                <p className="text-gray-600">
+                  <strong>Carbon Monoxide:</strong>{" "}
+                  {airQuality?.list[0].components.co ?? "N/A"} µg/m³
+                </p>
+                <p className="text-gray-600">
+                  <strong>Nitric Oxide:</strong>{" "}
+                  {airQuality?.list[0].components.no ?? "N/A"} µg/m³
+                </p>
+                <p className="text-gray-600">
+                  <strong>Nitrogen Dioxide:</strong>{" "}
+                  {airQuality?.list[0].components.no2 ?? "N/A"} µg/m³
+                </p>
+                <p className="text-gray-600">
+                  <strong>Ozone:</strong>{" "}
+                  {airQuality?.list[0].components.o3 ?? "N/A"} µg/m³
+                </p>
+                <p className="text-gray-600">
+                  <strong>Sulfur Dioxide:</strong>{" "}
+                  {airQuality?.list[0].components.so2 ?? "N/A"} µg/m³
+                </p>
+                <p className="text-gray-600">
+                  <strong>Particulate Matter (PM2.5):</strong>{" "}
+                  {airQuality?.list[0].components.pm2_5 ?? "N/A"} µg/m³
+                </p>
+                <p className="text-gray-600">
+                  <strong>Particulate Matter (PM10):</strong>{" "}
+                  {airQuality?.list[0].components.pm10 ?? "N/A"} µg/m³
+                </p>
+                <p className="text-gray-600">
+                  <strong>Ammonia:</strong>{" "}
+                  {airQuality?.list[0].components.nh3 ?? "N/A"} µg/m³
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {isModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+            <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-4">Add Coordinates</h2>
+              <input
+                type="text"
+                value={newLat}
+                onChange={(e) => setNewLat(e.target.value)}
+                placeholder="Enter latitude"
+                className="border px-3 py-1 rounded-lg mb-2 w-full"
+              />
+              <input
+                type="text"
+                value={newLon}
+                onChange={(e) => setNewLon(e.target.value)}
+                placeholder="Enter longitude"
+                className="border px-3 py-1 rounded-lg mb-4 w-full"
+              />
+              <div className="flex justify-end">
+                <button
+                  onClick={handleAddCoordinates}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg mr-2"
+                >
+                  Add
+                </button>
+                <button
+                  onClick={handleModalClose}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-          <p className="text-gray-600">
-            <strong>Location:</strong> {weatherData.name},{" "}
-            {weatherData.sys.country}
-          </p>
-          <p className="text-gray-600">
-            <strong>Coordinates:</strong> Lat {weatherData.coord.lat}, Lon{" "}
-            {weatherData.coord.lon}
-          </p>
-          <p className="text-gray-600">
-            <strong>Temperature:</strong> {temperature}°C
-          </p>
-          <p className="text-gray-600">
-            <strong>Carbon Monoxide:</strong>{" "}
-            {airQualityData.list[0].components.co} µg/m³
-          </p>
-
-          <p className="text-gray-600">
-            <strong>Nitric Oxide:</strong>{" "}
-            {airQualityData.list[0].components.no} µg/m³
-          </p>
-
-          <p className="text-gray-600">
-            <strong>Nitrogen Dioxide:</strong>{" "}
-            {airQualityData.list[0].components.no2} µg/m³
-          </p>
-
-          <p className="text-gray-600">
-            <strong>Ozone:</strong> {airQualityData.list[0].components.o3} µg/m³
-          </p>
-
-          <p className="text-gray-600">
-            <strong>Sulfur Dioxide:</strong>{" "}
-            {airQualityData.list[0].components.so2} µg/m³
-          </p>
-
-          <p className="text-gray-600">
-            <strong>Particulate Matter (PM2.5):</strong>{" "}
-            {airQualityData.list[0].components.pm2_5} µg/m³
-          </p>
-
-          <p className="text-gray-600">
-            <strong>Particulate Matter (PM10):</strong>{" "}
-            {airQualityData.list[0].components.pm10} µg/m³
-          </p>
-
-          <p className="text-gray-600">
-            <strong>Ammonia:</strong> {airQualityData.list[0].components.nh3}{" "}
-            µg/m³
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );
