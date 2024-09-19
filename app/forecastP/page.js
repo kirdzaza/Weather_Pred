@@ -47,9 +47,11 @@ export default function Forecast() {
   const weatherIcon = `http://openweathermap.org/img/wn/${currentForecast.weather[0].icon}.png`;
 
   return (
-    <div className="bg-gray-100 min-h-screen">
+    <div className="bg-gray-100 min-h-screen pt-16">
       <Nav />
       <div className="container mx-auto px-4 py-8">
+        {" "}
+        {/* Add pt-16 to push content below the Nav */}
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
           Weather Forecast
         </h1>
