@@ -1,3 +1,5 @@
+//page.js
+
 "use client"; // Mark this file as a Client Component
 
 import React, { useState } from "react";
@@ -88,12 +90,6 @@ export default function Home() {
               <p className="text-lg">
                 Wind Speed: {weatherData.wind.speed} m/s
               </p>
-              <button
-                type="button"
-                className="mt-4 w-full py-2 px-4 bg-yellow-500 text-white rounded-md shadow-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
-              >
-                Add to Favorites
-              </button>
             </div>
           )}
         </div>

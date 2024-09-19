@@ -1,9 +1,10 @@
+// /api/getWeather.js
+
 export default async function getWeather(lat, lon) {
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
   try {
     const response = await fetch(
       `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
-      // i know that my api keys was leaks but i cant hide it in .env file cause WEATHER_API_KEY=my_key its not work.
     );
 
     if (!response.ok) {

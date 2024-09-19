@@ -1,9 +1,11 @@
-export default async function getWeather(lat, lon) {
+// /api/forecast.js
+
+export async function getForecastData(lat, lon) {
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
+
   try {
     const response = await fetch(
-      `https://pro.openweathermap.org/data/2.5/forecast/hourly?lat=${lat}&lon=${lon}&appid=${apiKey}`
-      // i know that my api keys was leaks but i cant hide it in .env file cause WEATHER_API_KEY=my_key its not work.
+      `http://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}`
     );
 
     if (!response.ok) {
@@ -11,9 +13,9 @@ export default async function getWeather(lat, lon) {
     }
 
     const data = await response.json();
-    return data;
+    return data; // Ensure this matches your expected data structure
   } catch (error) {
-    console.error("Error fetching weather data:", error);
+    console.error("Error fetching forecast data:", error);
     throw error; // Re-throw the error to handle it in the component
   }
 }

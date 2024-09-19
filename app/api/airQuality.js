@@ -1,3 +1,5 @@
+// /api/airQuality.js
+
 export default async function getAirPollutionHistory(lat, lon) {
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
 
@@ -7,7 +9,7 @@ export default async function getAirPollutionHistory(lat, lon) {
 
   try {
     const response = await fetch(
-      `http://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${today}&end=${tomorrow}&appid=${apiKey}`
+      `https://api.openweathermap.org/data/2.5/air_pollution/history?lat=${lat}&lon=${lon}&start=${today}&end=${tomorrow}&appid=${apiKey}`
     );
 
     if (!response.ok) {

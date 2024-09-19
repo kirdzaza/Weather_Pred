@@ -1,4 +1,4 @@
-// src/app/Nav.js
+// app/Nav.js
 import React from "react";
 import Link from "next/link";
 
@@ -19,7 +19,7 @@ function Nav() {
             </li>
             <li>
               <Link
-                href="/currentP"
+                href="/getWeatherP"
                 className="block py-2 px-4 hover:bg-gray-700 rounded"
               >
                 Current Weather Page
@@ -27,7 +27,7 @@ function Nav() {
             </li>
             <li>
               <Link
-                href="/AQP"
+                href="/airQualityP"
                 className="block py-2 px-4 hover:bg-gray-700 rounded"
               >
                 Air Quality Page
