@@ -14,28 +14,38 @@ export default function CurrentWeather() {
   const [newLon, setNewLon] = useState("");
 
   useEffect(() => {
-    const fetchLatLonData = async () => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(""); // Reset error state
       try {
-        const response = await fetch("/api/currentData"); // Adjust the API endpoint as needed
-        const latLonData = await response.json();
+        const response = await fetch("/api/currentData");
+        if (!response.ok) {
+          throw new Error("Failed to fetch coordinates from the database.");
+        }
 
-        // Fetch weather data for the fetched lat/lon
-        const weatherPromises = latLonData.current_data.map((coord) =>
+        const { current_data } = await response.json();
+        if (!current_data || current_data.length === 0) {
+          throw new Error("No coordinates found in the database.");
+        }
+
+        const weatherPromises = current_data.map((coord) =>
           getWeather(coord.lat, coord.lon)
         );
-        const weatherResults = await Promise.all(weatherPromises);
 
-        setWeatherData(weatherResults);
-        setLoading(false);
+        const weatherResults = await Promise.all(weatherPromises);
+        const validWeatherData = weatherResults.filter((data) => data);
+
+        setWeatherData(validWeatherData);
       } catch (err) {
-        setError("Error fetching latitude and longitude data.");
+        setError(`Error fetching weather data: ${err.message}`);
         console.error(err);
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchLatLonData();
-  }, []);
+    fetchData();
+  }, [additionalCoordinates]);
 
   const handleAddCoordinates = () => {
     if (!isNaN(parseFloat(newLat)) && !isNaN(parseFloat(newLon))) {
@@ -57,17 +67,19 @@ export default function CurrentWeather() {
     setNewLon("");
   };
 
-  if (loading)
+  if (loading) {
     return (
       <div className="text-center text-xl font-semibold mt-10">Loading...</div>
     );
+  }
 
-  if (error)
+  if (error) {
     return (
       <div className="text-center text-xl font-semibold mt-10 text-red-600">
         {error}
       </div>
     );
+  }
 
   return (
     <div className="bg-gray-100 min-h-screen pt-16">
@@ -86,7 +98,9 @@ export default function CurrentWeather() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {weatherData.map((data, index) => {
-            const temperature = data.main.temp.toFixed(1);
+            if (!data) return null; // Ensure data exists
+
+            const temperature = data.main.temp.toFixed(1); // Convert from Kelvin to Celsius
             const weatherIcon = `http://openweathermap.org/img/wn/${data.weather[0].icon}.png`;
 
             return (
