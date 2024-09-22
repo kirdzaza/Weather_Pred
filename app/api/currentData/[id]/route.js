@@ -6,14 +6,13 @@ import { NextResponse } from "next/server";
 
 export async function PUT(request, { params }) {
   const { id } = params;
-  console.log(id);
   const { newlat: lat, newlon: lon } = await request.json();
   await connectMongoDB();
   await currentData.findByIdAndUpdate(id, {
     lat,
     lon,
   });
-  return NextResponse.json({ message: "Lat lon are updated" }, { status: 200 });
+  return NextResponse.json({ message: "Lat lon Updated" }, { status: 200 });
 }
 
 export async function GET(request, { params }) {

@@ -1,7 +1,10 @@
-// /api/getWeather.js
-
 export default async function getWeather(lat, lon) {
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Weather API key is missing");
+  }
+
   try {
     const response = await fetch(
       `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`

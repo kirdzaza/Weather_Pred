@@ -14,35 +14,28 @@ export default function CurrentWeather() {
   const [newLon, setNewLon] = useState("");
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    const fetchLatLonData = async () => {
       try {
-        // Fetch weather data for the default coordinates
-        const defaultWeather = await getWeather(15, 100); // Default coordinates
-        const defaultWeatherData = [defaultWeather];
+        const response = await fetch("/api/currentData"); // Adjust the API endpoint as needed
+        const latLonData = await response.json();
 
-        // Fetch weather data for all additional coordinates
-        const additionalWeatherPromises = additionalCoordinates.map(
-          async (coord) => {
-            return getWeather(coord.lat, coord.lon);
-          }
+        // Fetch weather data for the fetched lat/lon
+        const weatherPromises = latLonData.current_data.map((coord) =>
+          getWeather(coord.lat, coord.lon)
         );
-        const additionalWeatherData = await Promise.all(
-          additionalWeatherPromises
-        );
+        const weatherResults = await Promise.all(weatherPromises);
 
-        // Combine the default and additional weather data
-        setWeatherData([...defaultWeatherData, ...additionalWeatherData]);
+        setWeatherData(weatherResults);
         setLoading(false);
       } catch (err) {
-        setError("Error fetching weather data.");
+        setError("Error fetching latitude and longitude data.");
         console.error(err);
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [additionalCoordinates]);
+    fetchLatLonData();
+  }, []);
 
   const handleAddCoordinates = () => {
     if (!isNaN(parseFloat(newLat)) && !isNaN(parseFloat(newLon))) {
@@ -93,7 +86,7 @@ export default function CurrentWeather() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {weatherData.map((data, index) => {
-            const temperature = data.main.temp.toFixed(1); // Convert from Kelvin to Celsius
+            const temperature = data.main.temp.toFixed(1);
             const weatherIcon = `http://openweathermap.org/img/wn/${data.weather[0].icon}.png`;
 
             return (
