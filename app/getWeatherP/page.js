@@ -1,4 +1,3 @@
-// /getWeatherP/page.js
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -13,7 +12,6 @@ export default function CurrentWeather() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedData, setSelectedData] = useState(null);
 
-  // Fetch current data on component mount
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -23,18 +21,12 @@ export default function CurrentWeather() {
         const data = await response.json();
         const coords = data.current_data || [];
 
-        // Fetch weather data for each coordinate
         if (coords.length > 0) {
           const weatherPromises = coords.map((coord) =>
             getWeather(coord.lat, coord.lon)
           );
           const weatherResponses = await Promise.all(weatherPromises);
-
-          const weatherWithIds = weatherResponses.map((weather, index) => ({
-            ...weather,
-            _id: coords[index]._id,
-          }));
-          setWeatherData(weatherWithIds);
+          setWeatherData(weatherResponses);
         }
       } catch (err) {
         setError(err.message);
@@ -46,7 +38,6 @@ export default function CurrentWeather() {
     fetchData();
   }, []);
 
-  // Handle adding new coordinates
   const handleAddCoordinates = async () => {
     const { lat, lon } = newCoordinates;
     if (isNaN(lat) || isNaN(lon)) {
@@ -63,18 +54,10 @@ export default function CurrentWeather() {
         body: JSON.stringify({ lat: parseFloat(lat), lon: parseFloat(lon) }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `Error adding coordinates: ${
-            errorData.message || response.statusText
-          }`
-        );
-      }
-
+      if (!response.ok) throw new Error("Error adding coordinates");
       const data = await response.json();
       const weather = await getWeather(data.lat, data.lon);
-      setWeatherData((prev) => [...prev, { ...weather, _id: data._id }]);
+      setWeatherData((prev) => [...prev, weather]);
       setNewCoordinates({ lat: "", lon: "" });
       setIsModalOpen(false);
     } catch (err) {
@@ -83,7 +66,6 @@ export default function CurrentWeather() {
     }
   };
 
-  // Handle updating selected coordinates
   const handleUpdate = async () => {
     const { lat, lon } = newCoordinates;
     if (isNaN(lat) || isNaN(lon)) {
@@ -92,9 +74,6 @@ export default function CurrentWeather() {
     }
 
     try {
-      if (!selectedData || !selectedData._id)
-        throw new Error("No selected data to update");
-
       const response = await fetch(`/api/currentData/${selectedData._id}`, {
         method: "PUT",
         headers: {
@@ -103,55 +82,36 @@ export default function CurrentWeather() {
         body: JSON.stringify({
           newlat: parseFloat(lat),
           newlon: parseFloat(lon),
-        }),
+        }), // Sending newlat and newlon
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `Error updating coordinates: ${
-            errorData.message || response.statusText
-          }`
-        );
-      }
-
+      if (!response.ok) throw new Error("Error updating coordinates");
       const updatedWeather = await getWeather(lat, lon);
       setWeatherData((prev) =>
         prev.map((item) =>
-          item._id === selectedData._id
-            ? { ...updatedWeather, _id: item._id }
-            : item
+          item._id === selectedData._id ? updatedWeather : item
         )
       );
-      setNewCoordinates({ lat: "", lon: "" });
-      setSelectedData(null);
+      setNewCoordinates({ lat: "", lon: "" }); // Clear inputs
+      setSelectedData(null); // Close modal
     } catch (err) {
       console.error(err);
       alert(err.message);
     }
   };
 
-  // Handle deleting selected coordinates
   const handleDelete = async () => {
-    if (!selectedData || !selectedData._id) {
-      alert("No data selected for deletion.");
-      return;
-    }
+    if (!selectedData) return;
 
     try {
       const response = await fetch(`/api/currentData/${selectedData._id}`, {
         method: "DELETE",
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `Error deleting data: ${errorData.message || response.statusText}`
-        );
-      }
+      if (!response.ok) throw new Error("Error deleting data");
       setWeatherData((prev) =>
         prev.filter((data) => data._id !== selectedData._id)
       );
-      setSelectedData(null);
+      setSelectedData(null); // Close modal
     } catch (err) {
       console.error(err);
       alert(err.message);
@@ -176,18 +136,16 @@ export default function CurrentWeather() {
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
           Current Weather
         </h1>
-
-        {/* Always show the Add More Coordinates button */}
-        <div className="text-center mb-6">
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            Add More Coordinates
-          </button>
-        </div>
-
-        {weatherData.length > 0 && (
+        {weatherData.length === 0 ? (
+          <div className="text-center mb-6">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Add More Coordinates
+            </button>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {weatherData.map((data) => {
               const temperature = data.main.temp.toFixed(1);
@@ -208,13 +166,7 @@ export default function CurrentWeather() {
                       {data.weather[0].main}
                     </div>
                     <button
-                      onClick={() => {
-                        setSelectedData(data);
-                        setNewCoordinates({
-                          lat: data.coord.lat,
-                          lon: data.coord.lon,
-                        });
-                      }}
+                      onClick={() => setSelectedData(data)}
                       className="ml-auto text-gray-600"
                     >
                       ⋮
@@ -248,23 +200,6 @@ export default function CurrentWeather() {
                   <p className="text-gray-600">
                     <strong>Humidity:</strong> {data.main.humidity}%
                   </p>
-                  <div className="flex justify-end mt-4">
-                    <button
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            "Are you sure you want to delete this entry?"
-                          )
-                        ) {
-                          setSelectedData(data); // Set selected data to delete
-                          handleDelete(); // Call handleDelete
-                        }
-                      }}
-                      className="bg-red-500 text-white px-4 py-2 rounded-lg"
-                    >
-                      Delete
-                    </button>
-                  </div>
                 </div>
               );
             })}
@@ -314,39 +249,25 @@ export default function CurrentWeather() {
         {selectedData && (
           <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
             <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
-              <h2 className="text-xl font-bold mb-4">Update Coordinates</h2>
-              <input
-                type="text"
-                value={newCoordinates.lat}
-                onChange={(e) =>
-                  setNewCoordinates({ ...newCoordinates, lat: e.target.value })
-                }
-                placeholder="Enter new latitude"
-                className="border px-3 py-1 rounded-lg mb-2 w-full"
-              />
-              <input
-                type="text"
-                value={newCoordinates.lon}
-                onChange={(e) =>
-                  setNewCoordinates({ ...newCoordinates, lon: e.target.value })
-                }
-                placeholder="Enter new longitude"
-                className="border px-3 py-1 rounded-lg mb-4 w-full"
-              />
-              <div className="flex justify-end">
-                <button
-                  onClick={handleUpdate}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg mr-2"
-                >
-                  Update
-                </button>
-                <button
-                  onClick={() => setSelectedData(null)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-lg"
-                >
-                  Cancel
-                </button>
-              </div>
+              <h2 className="text-xl font-bold mb-4">Options</h2>
+              <button
+                onClick={handleUpdate}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg mb-2"
+              >
+                Update
+              </button>
+              <button
+                onClick={handleDelete}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setSelectedData(null)}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg mt-2"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         )}
