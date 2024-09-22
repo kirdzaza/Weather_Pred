@@ -6,5 +6,5 @@ const schema = new mongoose.Schema({
   lon: Number,
 });
 const currentData =
-  mongoose.currentDatas || mongoose.model("currentDatas", schema);
+  mongoose.models.currentDatas || mongoose.model("currentDatas", schema);
 module.exports = currentData;
