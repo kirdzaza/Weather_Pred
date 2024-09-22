@@ -7,52 +7,25 @@ import Nav from "../Nav"; // Ensure correct import path
 export default function Forecast() {
   const [forecasts, setForecasts] = useState([]); // Store multiple forecasts
   const [showAllDetails, setShowAllDetails] = useState({}); // Store details toggle state for each forecast
-  const [selectedIndex, setSelectedIndex] = useState(null); // Track selected forecast for update/delete
-  const [isModalOpen, setIsModalOpen] = useState(false); // Manage modal state
-  const [newLat, setNewLat] = useState(""); // State for new latitude input
-  const [newLon, setNewLon] = useState(""); // State for new longitude input
 
   useEffect(() => {
-    fetchForecastData(15, 100); // Use appropriate coordinates for the default location
+    // Initial fetch with default coordinates
+    fetchForecastData(15, 100); // Use appropriate coordinates for the default location (e.g., Thailand)
   }, []);
 
-  const fetchForecastData = async (lat, lon) => {
-    const newData = await getForecastData(lat, lon);
-    setForecasts((prev) => {
-      const isAlreadyInList = prev.some(
-        (forecast) => forecast.city.id === newData.city.id
-      );
-
-      if (!isAlreadyInList) {
-        return [...prev, newData]; // Add only if it's not already present
-      } else {
-        return prev; // No changes if already present
-      }
+  const fetchForecastData = (lat, lon) => {
+    getForecastData(lat, lon).then((newData) => {
+      setForecasts((prev) => [...prev, newData]); // Add new forecast to the list
     });
   };
 
   const handleAddMoreCoordinates = () => {
-    setIsModalOpen(true); // Open the modal
-  };
-
-  const handleModalAddCoordinates = async () => {
-    const lat = parseFloat(newLat);
-    const lon = parseFloat(newLon);
+    const lat = parseFloat(prompt("Enter latitude:"));
+    const lon = parseFloat(prompt("Enter longitude:"));
 
     if (!isNaN(lat) && !isNaN(lon)) {
-      await fetchForecastData(lat, lon); // Fetch data without replacing existing forecasts
-      setNewLat(""); // Reset input fields
-      setNewLon("");
-      setIsModalOpen(false); // Close the modal
-    } else {
-      alert("Please enter valid numbers for latitude and longitude.");
+      fetchForecastData(lat, lon); // Fetch data without replacing existing forecasts
     }
-  };
-
-  const handleModalClose = () => {
-    setIsModalOpen(false); // Close the modal
-    setNewLat(""); // Reset input fields
-    setNewLon("");
   };
 
   const handleToggleDetails = (index) => {
@@ -62,35 +35,10 @@ export default function Forecast() {
     }));
   };
 
-  const handleDeleteForecast = async (index) => {
-    // Confirm deletion
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this forecast?"
-    );
-    if (confirmed) {
-      setForecasts((prev) => prev.filter((_, i) => i !== index)); // Delete forecast at the given index
-    }
-  };
-
-  const handleUpdateForecast = async (index) => {
-    const newLat = prompt("Enter new latitude:");
-    const newLon = prompt("Enter new longitude:");
-    if (!isNaN(parseFloat(newLat)) && !isNaN(parseFloat(newLon))) {
-      const updatedForecast = forecasts[index];
-      // Here you would typically make an API call to update the forecast
-      // For example: await updateForecastAPI(updatedForecast.id, { newlat: parseFloat(newLat), newlon: parseFloat(newLon) });
-      console.log(
-        `Updating forecast for ${updatedForecast.city.name} to new coordinates: ${newLat}, ${newLon}`
-      );
-      await fetchForecastData(parseFloat(newLat), parseFloat(newLon)); // Refresh the forecast list
-    }
-  };
-
-  if (!forecasts.length) {
+  if (!forecasts.length)
     return (
       <div className="text-center text-xl font-semibold mt-10">Loading...</div>
     );
-  }
 
   return (
     <div className="bg-gray-100 min-h-screen pt-16">
@@ -99,14 +47,12 @@ export default function Forecast() {
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
           Weather Forecast
         </h1>
-        <div className="text-center mb-6">
-          <button
-            onClick={handleAddMoreCoordinates}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg mb-6 hover:bg-blue-600 transition-colors"
-          >
-            Add More Coordinates
-          </button>
-        </div>
+        <button
+          onClick={handleAddMoreCoordinates}
+          className="bg-blue-500 text-white px-4 py-2 rounded-lg mb-6 hover:bg-blue-600 transition-colors"
+        >
+          Add More Coordinates
+        </button>
         <div className="grid grid-cols-1 gap-6 mb-6">
           {forecasts.map((forecastData, index) => {
             const currentForecast = forecastData.list[0]; // Show only the first entry as current weather
@@ -123,7 +69,7 @@ export default function Forecast() {
             return (
               <div
                 key={index}
-                className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg"
+                className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg transition-transform transform hover:scale-105"
               >
                 <div className="flex items-center mb-4">
                   <img
@@ -133,32 +79,6 @@ export default function Forecast() {
                   />
                   <div className="text-xl font-semibold text-gray-700">
                     {forecastData.city.name}
-                  </div>
-                  <div className="ml-auto relative">
-                    <button
-                      onClick={() =>
-                        setSelectedIndex(selectedIndex === index ? null : index)
-                      }
-                      className="text-gray-800 focus:outline-none text-3xl p-2"
-                    >
-                      ⋮
-                    </button>
-                    {selectedIndex === index && (
-                      <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-300 rounded-lg shadow-lg">
-                        <button
-                          onClick={() => handleUpdateForecast(index)}
-                          className="block px-4 py-2 text-left w-full hover:bg-gray-100"
-                        >
-                          Update
-                        </button>
-                        <button
-                          onClick={() => handleDeleteForecast(index)}
-                          className="block px-4 py-2 text-left w-full hover:bg-gray-100"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
                 <p className="text-gray-600">
@@ -249,46 +169,6 @@ export default function Forecast() {
           })}
         </div>
       </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 shadow-lg w-1/3">
-            <h2 className="text-xl font-bold mb-4">Add Coordinates</h2>
-            <label className="block mb-2">
-              Latitude:
-              <input
-                type="text"
-                value={newLat}
-                onChange={(e) => setNewLat(e.target.value)}
-                className="border border-gray-300 rounded-lg p-2 w-full"
-              />
-            </label>
-            <label className="block mb-4">
-              Longitude:
-              <input
-                type="text"
-                value={newLon}
-                onChange={(e) => setNewLon(e.target.value)}
-                className="border border-gray-300 rounded-lg p-2 w-full"
-              />
-            </label>
-            <div className="flex justify-between">
-              <button
-                onClick={handleModalClose}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleModalAddCoordinates}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
