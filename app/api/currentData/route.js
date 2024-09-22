@@ -14,6 +14,7 @@ export async function POST(request) {
 
 export async function GET() {
   await connectMongoDB();
+
   const current_data = await currentData.find();
   return NextResponse.json({ current_data });
 }

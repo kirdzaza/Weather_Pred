@@ -18,26 +18,30 @@ export default function CurrentWeather() {
       setLoading(true);
       setError(""); // Reset error state
       try {
-        const response = await fetch("/api/currentData");
-        if (!response.ok) {
-          throw new Error("Failed to fetch coordinates from the database.");
-        }
+        // Fetch coordinates from your database
+        const response = await fetch("/api/currentData", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
 
         const { current_data } = await response.json();
-        if (!current_data || current_data.length === 0) {
+
+        // Check if current_data is not empty
+        if (current_data.length === 0) {
           throw new Error("No coordinates found in the database.");
         }
 
-        const weatherPromises = current_data.map((coord) =>
-          getWeather(coord.lat, coord.lon)
-        );
+        const weatherPromises = current_data.map(async (each) => {
+          return await getWeather(each.lat, each.lon);
+        });
+        // const weatherResults = await getWeather(34, 1);
 
         const weatherResults = await Promise.all(weatherPromises);
-        const validWeatherData = weatherResults.filter((data) => data);
 
-        setWeatherData(validWeatherData);
+        setWeatherData(weatherResults);
+        // Combine the results
       } catch (err) {
-        setError(`Error fetching weather data: ${err.message}`);
+        setError("Error fetching weather data: " + err.message);
         console.error(err);
       } finally {
         setLoading(false);
@@ -45,12 +49,14 @@ export default function CurrentWeather() {
     };
 
     fetchData();
-  }, [additionalCoordinates]);
+  }, []);
+
+  console.log(weatherData);
 
   const handleAddCoordinates = () => {
     if (!isNaN(parseFloat(newLat)) && !isNaN(parseFloat(newLon))) {
-      setAdditionalCoordinates([
-        ...additionalCoordinates,
+      setAdditionalCoordinates((prev) => [
+        ...prev,
         { lat: parseFloat(newLat), lon: parseFloat(newLon) },
       ]);
       setNewLat("");
@@ -67,19 +73,16 @@ export default function CurrentWeather() {
     setNewLon("");
   };
 
-  if (loading) {
+  if (loading)
     return (
       <div className="text-center text-xl font-semibold mt-10">Loading...</div>
     );
-  }
-
-  if (error) {
+  if (error)
     return (
       <div className="text-center text-xl font-semibold mt-10 text-red-600">
         {error}
       </div>
     );
-  }
 
   return (
     <div className="bg-gray-100 min-h-screen pt-16">
@@ -97,12 +100,7 @@ export default function CurrentWeather() {
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {weatherData.map((data, index) => {
-            if (!data) return null; // Ensure data exists
-
-            const temperature = data.main.temp.toFixed(1); // Convert from Kelvin to Celsius
-            const weatherIcon = `http://openweathermap.org/img/wn/${data.weather[0].icon}.png`;
-
+          {weatherData.map((each, index) => {
             return (
               <div
                 key={index}
@@ -110,41 +108,42 @@ export default function CurrentWeather() {
               >
                 <div className="flex items-center mb-4">
                   <img
-                    src={weatherIcon}
-                    alt={data.weather[0].description}
+                    src={`http://openweathermap.org/img/wn/${each.weather[0].icon}.png`}
+                    alt={each.weather[0].description}
                     className="w-16 h-16 mr-4"
                   />
                   <div className="text-xl font-semibold text-gray-700">
-                    {data.weather[0].main}
+                    {each.weather[0].main}
                   </div>
                 </div>
                 <p className="text-gray-600">
-                  <strong>Location:</strong> {data.name}, {data.sys.country}
+                  <strong>Location:</strong> {each.name}, {each.sys.country}
                 </p>
                 <p className="text-gray-600">
-                  <strong>Coordinates:</strong> Lat {data.coord.lat}, Lon{" "}
-                  {data.coord.lon}
+                  <strong>Coordinates:</strong> Lat {each.coord.lat}, Lon{" "}
+                  {each.coord.lon}
                 </p>
                 <p className="text-gray-600">
-                  <strong>Temperature:</strong> {temperature}°C
+                  <strong>Temperature:</strong>{" "}
+                  {(each.main.temp - 273.15).toFixed(1)}°C
                 </p>
                 <p className="text-gray-600">
-                  <strong>Feels Like:</strong> {data.main.feels_like.toFixed(1)}
-                  °C
+                  <strong>Feels Like:</strong>{" "}
+                  {(each.main.feels_like - 273.15).toFixed(1)}°C
                 </p>
                 <p className="text-gray-600">
                   <strong>Min Temperature:</strong>{" "}
-                  {data.main.temp_min.toFixed(1)}°C
+                  {(each.main.temp_min - 273.15).toFixed(1)}°C
                 </p>
                 <p className="text-gray-600">
                   <strong>Max Temperature:</strong>{" "}
-                  {data.main.temp_max.toFixed(1)}°C
+                  {(each.main.temp_max - 273.15).toFixed(1)}°C
                 </p>
                 <p className="text-gray-600">
-                  <strong>Pressure:</strong> {data.main.pressure} hPa
+                  <strong>Pressure:</strong> {each.main.pressure} hPa
                 </p>
                 <p className="text-gray-600">
-                  <strong>Humidity:</strong> {data.main.humidity}%
+                  <strong>Humidity:</strong> {each.main.humidity}%
                 </p>
               </div>
             );

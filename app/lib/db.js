@@ -1,16 +1,15 @@
 // /lib/db.js
-
 import mongoose from "mongoose";
 
-const connectMongoDB = () => {
-  try {
-    mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("connected to your db");
-  } catch (error) {
-    console.log(error);
+const connectMongoDB = async () => {
+  // Check if already connected
+  if (mongoose.connection.readyState === 0) {
+    try {
+      await mongoose.connect(process.env.MONGODB_URI);
+      console.log("Connected to your db");
+    } catch (error) {
+      console.error("Error connecting to MongoDB:", error);
+    }
   }
 };
 
