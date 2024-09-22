@@ -9,12 +9,11 @@ export async function POST(request) {
 
   await connectMongoDB();
   await currentData.create({ lat, lon });
-  return NextResponse.json({ message: "Lat lon are created" }, { status: 201 });
+  return NextResponse.json({ message: "Lat Lon are created" }, { status: 201 });
 }
 
 export async function GET() {
   await connectMongoDB();
-
   const current_data = await currentData.find();
   return NextResponse.json({ current_data });
 }

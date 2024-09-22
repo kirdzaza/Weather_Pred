@@ -1,48 +1,41 @@
-"use client"; // Ensure this line is at the top of the file
+"use client";
 
 import React, { useEffect, useState } from "react";
-import getWeather from "../api/getWeather"; // Ensure correct API import
-import Nav from "../Nav"; // Ensure correct import path
+import getWeather from "../api/getWeather";
+import Nav from "../Nav";
 
 export default function CurrentWeather() {
   const [weatherData, setWeatherData] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [additionalCoordinates, setAdditionalCoordinates] = useState([]);
+  const [newCoordinates, setNewCoordinates] = useState({ lat: "", lon: "" });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newLat, setNewLat] = useState("");
-  const [newLon, setNewLon] = useState("");
+  const [selectedData, setSelectedData] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // New state for the menu
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      setError(""); // Reset error state
       try {
-        // Fetch coordinates from your database
-        const response = await fetch("/api/currentData", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
+        const response = await fetch("/api/currentData");
+        if (!response.ok) throw new Error("Error fetching data");
+        const data = await response.json();
+        const coords = data.current_data || [];
 
-        const { current_data } = await response.json();
+        if (coords.length > 0) {
+          const weatherPromises = coords.map((coord) =>
+            getWeather(coord.lat, coord.lon)
+          );
+          const weatherResponses = await Promise.all(weatherPromises);
 
-        // Check if current_data is not empty
-        if (current_data.length === 0) {
-          throw new Error("No coordinates found in the database.");
+          const weatherWithIds = weatherResponses.map((weather, index) => ({
+            ...weather,
+            _id: coords[index]._id,
+          }));
+          setWeatherData(weatherWithIds);
         }
-
-        const weatherPromises = current_data.map(async (each) => {
-          return await getWeather(each.lat, each.lon);
-        });
-        // const weatherResults = await getWeather(34, 1);
-
-        const weatherResults = await Promise.all(weatherPromises);
-
-        setWeatherData(weatherResults);
-        // Combine the results
       } catch (err) {
-        setError("Error fetching weather data: " + err.message);
-        console.error(err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -51,26 +44,123 @@ export default function CurrentWeather() {
     fetchData();
   }, []);
 
-  console.log(weatherData);
-
-  const handleAddCoordinates = () => {
-    if (!isNaN(parseFloat(newLat)) && !isNaN(parseFloat(newLon))) {
-      setAdditionalCoordinates((prev) => [
-        ...prev,
-        { lat: parseFloat(newLat), lon: parseFloat(newLon) },
-      ]);
-      setNewLat("");
-      setNewLon("");
-      setIsModalOpen(false);
-    } else {
+  const handleAddCoordinates = async () => {
+    const { lat, lon } = newCoordinates;
+    if (isNaN(lat) || isNaN(lon)) {
       alert("Please enter valid numbers for latitude and longitude.");
+      return;
+    }
+
+    console.log("Adding coordinates:", {
+      lat: parseFloat(lat),
+      lon: parseFloat(lon),
+    });
+
+    try {
+      const response = await fetch("/api/currentData", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ lat: parseFloat(lat), lon: parseFloat(lon) }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error adding coordinates: ${
+            errorData.message || response.statusText
+          }`
+        );
+      }
+
+      const data = await response.json();
+      const weather = await getWeather(data.lat, data.lon);
+      setWeatherData((prev) => [...prev, { ...weather, _id: data._id }]);
+      setNewCoordinates({ lat: "", lon: "" });
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      window.location.reload(); // Refresh the page on error
     }
   };
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setNewLat("");
-    setNewLon("");
+  const handleUpdate = async () => {
+    const { lat, lon } = newCoordinates;
+    if (isNaN(lat) || isNaN(lon)) {
+      alert("Please enter valid numbers for latitude and longitude.");
+      return;
+    }
+
+    console.log("Updating coordinates:", {
+      lat: parseFloat(lat),
+      lon: parseFloat(lon),
+    });
+
+    try {
+      if (!selectedData || !selectedData._id)
+        throw new Error("No selected data to update");
+
+      const response = await fetch(`/api/currentData/${selectedData._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          newlat: parseFloat(lat),
+          newlon: parseFloat(lon),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error updating coordinates: ${
+            errorData.message || response.statusText
+          }`
+        );
+      }
+
+      const updatedWeather = await getWeather(lat, lon);
+      setWeatherData((prev) =>
+        prev.map((item) =>
+          item._id === selectedData._id
+            ? { ...updatedWeather, _id: item._id }
+            : item
+        )
+      );
+      setNewCoordinates({ lat: "", lon: "" });
+      setSelectedData(null);
+      setIsModalOpen(false); // Close the modal
+      setIsMenuOpen(false); // Close the menu
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(`/api/currentData/?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error deleting data: ${errorData.message || response.statusText}`
+        );
+      }
+      setWeatherData((prev) => prev.filter((data) => data._id !== id));
+      setIsMenuOpen(false); // Close the menu
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
+  const toggleMenu = (data) => {
+    setSelectedData(data);
+    setIsMenuOpen(!isMenuOpen);
   };
 
   if (loading)
@@ -91,6 +181,7 @@ export default function CurrentWeather() {
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
           Current Weather
         </h1>
+
         <div className="text-center mb-6">
           <button
             onClick={() => setIsModalOpen(true)}
@@ -99,56 +190,67 @@ export default function CurrentWeather() {
             Add More Coordinates
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {weatherData.map((each, index) => {
-            return (
-              <div
-                key={index}
-                className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg"
-              >
-                <div className="flex items-center mb-4">
-                  <img
-                    src={`http://openweathermap.org/img/wn/${each.weather[0].icon}.png`}
-                    alt={each.weather[0].description}
-                    className="w-16 h-16 mr-4"
-                  />
-                  <div className="text-xl font-semibold text-gray-700">
-                    {each.weather[0].main}
+
+        {weatherData.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {weatherData.map((data) => {
+              const temperature = data.main.temp.toFixed(1);
+              const weatherIcon = `http://openweathermap.org/img/wn/${data.weather[0].icon}.png`;
+
+              return (
+                <div
+                  key={data._id}
+                  className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg"
+                >
+                  <div className="flex items-center mb-4">
+                    <img
+                      src={weatherIcon}
+                      alt={data.weather[0].description}
+                      className="w-16 h-16 mr-4"
+                    />
+                    <div className="text-xl font-semibold text-gray-700">
+                      {data.weather[0].main}
+                    </div>
+                    <button
+                      onClick={() => toggleMenu(data)}
+                      className="ml-auto text-gray-600"
+                    >
+                      ⋮
+                    </button>
                   </div>
+                  <p className="text-gray-600">
+                    <strong>Location:</strong> {data.name}, {data.sys.country}
+                  </p>
+                  <p className="text-gray-600">
+                    <strong>Coordinates:</strong> Lat {data.coord.lat}, Lon{" "}
+                    {data.coord.lon}
+                  </p>
+                  <p className="text-gray-600">
+                    <strong>Temperature:</strong> {temperature}°C
+                  </p>
+                  <p className="text-gray-600">
+                    <strong>Feels Like:</strong>{" "}
+                    {data.main.feels_like.toFixed(1)}°C
+                  </p>
+                  <p className="text-gray-600">
+                    <strong>Min Temperature:</strong>{" "}
+                    {data.main.temp_min.toFixed(1)}°C
+                  </p>
+                  <p className="text-gray-600">
+                    <strong>Max Temperature:</strong>{" "}
+                    {data.main.temp_max.toFixed(1)}°C
+                  </p>
+                  <p className="text-gray-600">
+                    <strong>Pressure:</strong> {data.main.pressure} hPa
+                  </p>
+                  <p className="text-gray-600">
+                    <strong>Humidity:</strong> {data.main.humidity}%
+                  </p>
                 </div>
-                <p className="text-gray-600">
-                  <strong>Location:</strong> {each.name}, {each.sys.country}
-                </p>
-                <p className="text-gray-600">
-                  <strong>Coordinates:</strong> Lat {each.coord.lat}, Lon{" "}
-                  {each.coord.lon}
-                </p>
-                <p className="text-gray-600">
-                  <strong>Temperature:</strong>{" "}
-                  {(each.main.temp - 273.15).toFixed(1)}°C
-                </p>
-                <p className="text-gray-600">
-                  <strong>Feels Like:</strong>{" "}
-                  {(each.main.feels_like - 273.15).toFixed(1)}°C
-                </p>
-                <p className="text-gray-600">
-                  <strong>Min Temperature:</strong>{" "}
-                  {(each.main.temp_min - 273.15).toFixed(1)}°C
-                </p>
-                <p className="text-gray-600">
-                  <strong>Max Temperature:</strong>{" "}
-                  {(each.main.temp_max - 273.15).toFixed(1)}°C
-                </p>
-                <p className="text-gray-600">
-                  <strong>Pressure:</strong> {each.main.pressure} hPa
-                </p>
-                <p className="text-gray-600">
-                  <strong>Humidity:</strong> {each.main.humidity}%
-                </p>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {isModalOpen && (
           <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
@@ -156,32 +258,74 @@ export default function CurrentWeather() {
               <h2 className="text-xl font-bold mb-4">Add Coordinates</h2>
               <input
                 type="text"
-                value={newLat}
-                onChange={(e) => setNewLat(e.target.value)}
-                placeholder="Enter latitude"
-                className="border px-3 py-1 rounded-lg mb-2 w-full"
+                value={newCoordinates.lat}
+                onChange={(e) =>
+                  setNewCoordinates({ ...newCoordinates, lat: e.target.value })
+                }
+                placeholder="Latitude"
+                className="border border-gray-300 p-2 rounded-lg mb-4 w-full"
               />
               <input
                 type="text"
-                value={newLon}
-                onChange={(e) => setNewLon(e.target.value)}
-                placeholder="Enter longitude"
-                className="border px-3 py-1 rounded-lg mb-4 w-full"
+                value={newCoordinates.lon}
+                onChange={(e) =>
+                  setNewCoordinates({ ...newCoordinates, lon: e.target.value })
+                }
+                placeholder="Longitude"
+                className="border border-gray-300 p-2 rounded-lg mb-4 w-full"
               />
               <div className="flex justify-end">
                 <button
-                  onClick={handleAddCoordinates}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg mr-2"
-                >
-                  Add
-                </button>
-                <button
-                  onClick={handleModalClose}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-lg"
+                  onClick={() => setIsModalOpen(false)}
+                  className="mr-2 px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
                 >
                   Cancel
                 </button>
+                <button
+                  onClick={selectedData ? handleUpdate : handleAddCoordinates}
+                  className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+                >
+                  {selectedData ? "Update" : "Add"}
+                </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {isMenuOpen && selectedData && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+            <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-4">Actions</h2>
+              <div className="flex justify-between">
+                <button
+                  onClick={() => {
+                    setNewCoordinates({
+                      lat: selectedData.coord.lat,
+                      lon: selectedData.coord.lon,
+                    });
+                    setIsModalOpen(true);
+                    setIsMenuOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+                >
+                  Update
+                </button>
+                <button
+                  onClick={() => {
+                    handleDelete(selectedData._id);
+                    setIsMenuOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+              <button
+                onClick={() => setIsMenuOpen(false)}
+                className="mt-4 px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
+              >
+                Close
+              </button>
             </div>
           </div>
         )}

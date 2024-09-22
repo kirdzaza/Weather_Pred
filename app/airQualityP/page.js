@@ -19,47 +19,32 @@ export default function CurrentWeather() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch weather data for the default coordinates
-        const defaultWeather = await getWeather(15, 100); // Default coordinates
-        const defaultAirQuality = await getAirQuality(15, 100); // Default coordinates
-        const defaultWeatherData = [defaultWeather];
-        const defaultAirQualityData = [defaultAirQuality];
+        const response = await fetch("/api/currentData");
+        if (!response.ok) throw new Error("Error fetching data");
+        const data = await response.json();
+        const coords = data.current_data || [];
 
-        // Fetch weather and air quality data for all additional coordinates
-        const additionalWeatherPromises = additionalCoordinates.map(
-          async (coord) => {
-            return getWeather(coord.lat, coord.lon);
-          }
-        );
-        const additionalAirQualityPromises = additionalCoordinates.map(
-          async (coord) => {
-            return getAirQuality(coord.lat, coord.lon);
-          }
-        );
+        if (coords.length > 0) {
+          const weatherPromises = coords.map((coord) =>
+            getWeather(coord.lat, coord.lon)
+          );
+          const weatherResponses = await Promise.all(weatherPromises);
 
-        const additionalWeatherData = await Promise.all(
-          additionalWeatherPromises
-        );
-        const additionalAirQualityData = await Promise.all(
-          additionalAirQualityPromises
-        );
-
-        // Combine the default and additional weather and air quality data
-        setWeatherData([...defaultWeatherData, ...additionalWeatherData]);
-        setAirQualityData([
-          ...defaultAirQualityData,
-          ...additionalAirQualityData,
-        ]);
-        setLoading(false);
+          const weatherWithIds = weatherResponses.map((weather, index) => ({
+            ...weather,
+            _id: coords[index]._id,
+          }));
+          setWeatherData(weatherWithIds);
+        }
       } catch (err) {
-        setError("Error fetching data.");
-        console.error(err);
+        setError(err.message);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [additionalCoordinates]);
+  }, []);
 
   const handleAddCoordinates = () => {
     if (!isNaN(parseFloat(newLat)) && !isNaN(parseFloat(newLon))) {
