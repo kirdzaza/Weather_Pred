@@ -79,6 +79,7 @@ export default function CurrentWeather() {
       setWeatherData((prev) => [...prev, { ...weather, _id: data._id }]);
       setNewCoordinates({ lat: "", lon: "" });
       setIsModalOpen(false);
+      window.location.reload();
     } catch (err) {
       console.error(err);
       window.location.reload(); // Refresh the page on error
@@ -133,9 +134,11 @@ export default function CurrentWeather() {
       setSelectedData(null);
       setIsModalOpen(false); // Close the modal
       setIsMenuOpen(false); // Close the menu
+      window.location.reload();
     } catch (err) {
       console.error(err);
       alert(err.message);
+      window.location.reload();
     }
   };
 
@@ -152,9 +155,11 @@ export default function CurrentWeather() {
       }
       setWeatherData((prev) => prev.filter((data) => data._id !== id));
       setIsMenuOpen(false); // Close the menu
+      window.location.reload();
     } catch (err) {
       console.error(err);
       alert(err.message);
+      window.location.reload();
     }
   };
 

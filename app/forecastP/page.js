@@ -1,96 +1,169 @@
-"use client"; // Ensure this line is at the top of the file
+"use client";
 
 import React, { useEffect, useState } from "react";
-import { getForecastData } from "../api/forecast"; // Ensure correct API import
-import Nav from "../Nav"; // Ensure correct import path
+import { getForecastData } from "../api/forecast";
+import Nav from "../Nav";
 
 export default function Forecast() {
-  const [forecasts, setForecasts] = useState([]); // Store multiple forecasts
-  const [showAllDetails, setShowAllDetails] = useState({}); // Store details toggle state for each forecast
-  const [selectedIndex, setSelectedIndex] = useState(null); // Track selected forecast for update/delete
-  const [isModalOpen, setIsModalOpen] = useState(false); // Manage modal state
-  const [newLat, setNewLat] = useState(""); // State for new latitude input
-  const [newLon, setNewLon] = useState(""); // State for new longitude input
+  const [forecasts, setForecasts] = useState([]);
+  const [showAllDetails, setShowAllDetails] = useState({});
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [newCoordinates, setNewCoordinates] = useState({ lat: "", lon: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedData, setSelectedData] = useState(null);
 
   useEffect(() => {
-    fetchForecastData(15, 100); // Use appropriate coordinates for the default location
+    const fetchCoordinates = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch("/api/forecastData");
+        if (!response.ok) throw new Error("Error fetching coordinates");
+        const data = await response.json();
+        const coords = data.forecast_data || [];
+
+        if (coords.length === 0) throw new Error("No coordinates available.");
+
+        const weatherPromises = coords.map((coord) =>
+          getForecastData(coord.lat, coord.lon)
+        );
+        const weatherResponses = await Promise.all(weatherPromises);
+        const forecastsWithIds = weatherResponses.map((weather, index) => ({
+          ...weather,
+          _id: coords[index]._id,
+        }));
+        setForecasts(forecastsWithIds);
+      } catch (error) {
+        console.error(error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCoordinates();
   }, []);
 
-  const fetchForecastData = async (lat, lon) => {
-    const newData = await getForecastData(lat, lon);
-    setForecasts((prev) => {
-      const isAlreadyInList = prev.some(
-        (forecast) => forecast.city.id === newData.city.id
+  const handleAddCoordinates = async () => {
+    const lat = parseFloat(newCoordinates.lat);
+    const lon = parseFloat(newCoordinates.lon);
+    if (
+      isNaN(lat) ||
+      isNaN(lon) ||
+      lat < -90 ||
+      lat > 90 ||
+      lon < -180 ||
+      lon > 180
+    ) {
+      setError("Please enter valid latitude and longitude.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/forecastData", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ lat, lon }),
+      });
+      if (!response.ok) throw new Error("Failed to add coordinates.");
+
+      const data = await response.json();
+      const weather = await getForecastData(data.lat, data.lon);
+      setForecasts((prev) => [...prev, { ...weather, _id: data._id }]);
+      setNewCoordinates({ lat: "", lon: "" });
+      setIsModalOpen(false);
+      setError(null);
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      window.location.reload();
+    }
+  };
+
+  const handleUpdate = async () => {
+    const lat = parseFloat(newCoordinates.lat);
+    const lon = parseFloat(newCoordinates.lon);
+    if (
+      isNaN(lat) ||
+      isNaN(lon) ||
+      lat < -90 ||
+      lat > 90 ||
+      lon < -180 ||
+      lon > 180
+    ) {
+      alert("Please enter valid latitude and longitude.");
+      return;
+    }
+
+    try {
+      if (selectedIndex === null || !forecasts[selectedIndex]._id)
+        throw new Error("No selected data to update");
+
+      const response = await fetch(
+        `/api/forecastData/${forecasts[selectedIndex]._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ lat, lon }),
+        }
       );
+      if (!response.ok) throw new Error("Failed to update coordinates.");
 
-      if (!isAlreadyInList) {
-        return [...prev, newData]; // Add only if it's not already present
-      } else {
-        return prev; // No changes if already present
-      }
-    });
+      const updatedWeather = await getForecastData(lat, lon);
+      setForecasts((prev) =>
+        prev.map((item, index) =>
+          index === selectedIndex ? { ...updatedWeather, _id: item._id } : item
+        )
+      );
+      setNewCoordinates({ lat: "", lon: "" });
+      setSelectedIndex(null);
+      setIsModalOpen(false);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
-  const handleAddMoreCoordinates = () => {
-    setIsModalOpen(true); // Open the modal
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(`/api/forecastData/?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete data.");
+      setForecasts((prev) => prev.filter((data) => data._id !== id));
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
-  const handleModalAddCoordinates = async () => {
-    const lat = parseFloat(newLat);
-    const lon = parseFloat(newLon);
-
-    if (!isNaN(lat) && !isNaN(lon)) {
-      await fetchForecastData(lat, lon); // Fetch data without replacing existing forecasts
-      setNewLat(""); // Reset input fields
-      setNewLon("");
-      setIsModalOpen(false); // Close the modal
+  const toggleMenu = (index) => {
+    if (selectedIndex === index) {
+      setSelectedIndex(null);
+      setIsMenuOpen(false);
     } else {
-      alert("Please enter valid numbers for latitude and longitude.");
+      setSelectedIndex(index);
+      setSelectedData(forecasts[index]);
+      setIsMenuOpen(true);
     }
   };
 
-  const handleModalClose = () => {
-    setIsModalOpen(false); // Close the modal
-    setNewLat(""); // Reset input fields
-    setNewLon("");
-  };
-
-  const handleToggleDetails = (index) => {
-    setShowAllDetails((prev) => ({
-      ...prev,
-      [index]: !prev[index], // Toggle details visibility for a specific forecast
-    }));
-  };
-
-  const handleDeleteForecast = async (index) => {
-    // Confirm deletion
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this forecast?"
-    );
-    if (confirmed) {
-      setForecasts((prev) => prev.filter((_, i) => i !== index)); // Delete forecast at the given index
-    }
-  };
-
-  const handleUpdateForecast = async (index) => {
-    const newLat = prompt("Enter new latitude:");
-    const newLon = prompt("Enter new longitude:");
-    if (!isNaN(parseFloat(newLat)) && !isNaN(parseFloat(newLon))) {
-      const updatedForecast = forecasts[index];
-      // Here you would typically make an API call to update the forecast
-      // For example: await updateForecastAPI(updatedForecast.id, { newlat: parseFloat(newLat), newlon: parseFloat(newLon) });
-      console.log(
-        `Updating forecast for ${updatedForecast.city.name} to new coordinates: ${newLat}, ${newLon}`
-      );
-      await fetchForecastData(parseFloat(newLat), parseFloat(newLon)); // Refresh the forecast list
-    }
-  };
-
-  if (!forecasts.length) {
+  if (loading)
     return (
       <div className="text-center text-xl font-semibold mt-10">Loading...</div>
     );
-  }
+  if (error)
+    return (
+      <div className="text-center text-xl font-semibold mt-10 text-red-600">
+        {error}
+      </div>
+    );
 
   return (
     <div className="bg-gray-100 min-h-screen pt-16">
@@ -101,7 +174,7 @@ export default function Forecast() {
         </h1>
         <div className="text-center mb-6">
           <button
-            onClick={handleAddMoreCoordinates}
+            onClick={() => setIsModalOpen(true)}
             className="bg-blue-500 text-white px-4 py-2 rounded-lg mb-6 hover:bg-blue-600 transition-colors"
           >
             Add More Coordinates
@@ -109,15 +182,9 @@ export default function Forecast() {
         </div>
         <div className="grid grid-cols-1 gap-6 mb-6">
           {forecasts.map((forecastData, index) => {
-            const currentForecast = forecastData.list[0]; // Show only the first entry as current weather
-            const date = new Date(currentForecast.dt * 1000); // Convert timestamp to Date
-            const temperature = (currentForecast.main.temp - 273.15).toFixed(1); // Convert from Kelvin to Celsius
-            const precipitation = currentForecast.rain
-              ? currentForecast.rain["1h"]
-              : 0;
-            const wind = currentForecast.wind.speed;
-            const humidity = currentForecast.main.humidity;
-            const pressure = currentForecast.main.pressure;
+            const currentForecast = forecastData.list[0];
+            const date = new Date(currentForecast.dt * 1000);
+            const temperature = (currentForecast.main.temp - 273.15).toFixed(1);
             const weatherIcon = `http://openweathermap.org/img/wn/${currentForecast.weather[0].icon}.png`;
 
             return (
@@ -132,116 +199,110 @@ export default function Forecast() {
                     className="w-12 h-12 mr-4"
                   />
                   <div className="text-xl font-semibold text-gray-700">
-                    {forecastData.city.name}
+                    {forecastData.city.name}, {forecastData.city.country}
                   </div>
-                  <div className="ml-auto relative">
-                    <button
-                      onClick={() =>
-                        setSelectedIndex(selectedIndex === index ? null : index)
-                      }
-                      className="text-gray-800 focus:outline-none text-3xl p-2"
-                    >
-                      ⋮
-                    </button>
-                    {selectedIndex === index && (
-                      <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-300 rounded-lg shadow-lg">
-                        <button
-                          onClick={() => handleUpdateForecast(index)}
-                          className="block px-4 py-2 text-left w-full hover:bg-gray-100"
-                        >
-                          Update
-                        </button>
-                        <button
-                          onClick={() => handleDeleteForecast(index)}
-                          className="block px-4 py-2 text-left w-full hover:bg-gray-100"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    onClick={() => toggleMenu(index)}
+                    className="text-gray-800 focus:outline-none text-3xl p-2 ml-auto"
+                  >
+                    ⋮
+                  </button>
                 </div>
                 <p className="text-gray-600">
-                  <strong>Date/Time:</strong> {date.toLocaleDateString()}{" "}
-                  {date.toLocaleTimeString()}
+                  <strong>Location:</strong> {forecastData.city.name},{" "}
+                  {forecastData.city.country}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Coordinates:</strong> Lat{" "}
+                  {forecastData.city.coord.lat}, Lon{" "}
+                  {forecastData.city.coord.lon}
                 </p>
                 <p className="text-gray-600">
                   <strong>Temperature:</strong> {temperature}°C
                 </p>
                 <p className="text-gray-600">
-                  <strong>Precipitation:</strong> {precipitation} mm
+                  <strong>Feels Like:</strong>{" "}
+                  {(currentForecast.main.feels_like - 273.15).toFixed(1)}°C
                 </p>
                 <p className="text-gray-600">
-                  <strong>Wind:</strong> {wind} m/s
+                  <strong>Min Temperature:</strong>{" "}
+                  {(currentForecast.main.temp_min - 273.15).toFixed(1)}°C
                 </p>
                 <p className="text-gray-600">
-                  <strong>Humidity:</strong> {humidity}%
+                  <strong>Max Temperature:</strong>{" "}
+                  {(currentForecast.main.temp_max - 273.15).toFixed(1)}°C
                 </p>
                 <p className="text-gray-600">
-                  <strong>Pressure:</strong> {pressure} hPa
+                  <strong>Pressure:</strong> {currentForecast.main.pressure} hPa
+                </p>
+                <p className="text-gray-600">
+                  <strong>Humidity:</strong> {currentForecast.main.humidity}%
                 </p>
                 <button
-                  onClick={() => handleToggleDetails(index)}
+                  onClick={() =>
+                    setShowAllDetails((prev) => ({
+                      ...prev,
+                      [index]: !prev[index],
+                    }))
+                  }
                   className="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
                 >
                   {showAllDetails[index] ? "Show Less" : "More Details"}
                 </button>
                 {showAllDetails[index] && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-                    {forecastData.list.map((entry, i) => {
-                      if (i === 0) return null; // Skip the current weather card already displayed
-
-                      const entryDate = new Date(entry.dt * 1000);
-                      const entryTemperature = (
-                        entry.main.temp - 273.15
-                      ).toFixed(1);
-                      const entryPrecipitation = entry.rain
-                        ? entry.rain["1h"]
-                        : 0;
-                      const entryWind = entry.wind.speed;
-                      const entryHumidity = entry.main.humidity;
-                      const entryPressure = entry.main.pressure;
-                      const entryIcon = `http://openweathermap.org/img/wn/${entry.weather[0].icon}.png`;
-
-                      return (
-                        <div
-                          key={i}
-                          className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg"
-                        >
-                          <div className="flex items-center mb-4">
-                            <img
-                              src={entryIcon}
-                              alt={entry.weather[0].description}
-                              className="w-12 h-12 mr-4"
-                            />
-                            <div className="text-xl font-semibold text-gray-700">
-                              {forecastData.city.name}
-                            </div>
+                    {forecastData.list.slice(1).map((entry, i) => (
+                      <div
+                        key={i}
+                        className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg"
+                      >
+                        <div className="flex items-center mb-4">
+                          <img
+                            src={`http://openweathermap.org/img/wn/${entry.weather[0].icon}.png`}
+                            alt={entry.weather[0].description}
+                            className="w-12 h-12 mr-4"
+                          />
+                          <div className="text-xl font-semibold text-gray-700">
+                            {forecastData.city.name}
                           </div>
-                          <p className="text-gray-600">
-                            <strong>Date/Time:</strong>{" "}
-                            {entryDate.toLocaleDateString()}{" "}
-                            {entryDate.toLocaleTimeString()}
-                          </p>
-                          <p className="text-gray-600">
-                            <strong>Temperature:</strong> {entryTemperature}°C
-                          </p>
-                          <p className="text-gray-600">
-                            <strong>Precipitation:</strong> {entryPrecipitation}{" "}
-                            mm
-                          </p>
-                          <p className="text-gray-600">
-                            <strong>Wind:</strong> {entryWind} m/s
-                          </p>
-                          <p className="text-gray-600">
-                            <strong>Humidity:</strong> {entryHumidity}%
-                          </p>
-                          <p className="text-gray-600">
-                            <strong>Pressure:</strong> {entryPressure} hPa
-                          </p>
                         </div>
-                      );
-                    })}
+                        <p className="text-gray-600">
+                          <strong>Location:</strong> {forecastData.city.name},{" "}
+                          {forecastData.city.country}
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Coordinates:</strong> Lat{" "}
+                          {forecastData.city.coord.lat}, Lon{" "}
+                          {forecastData.city.coord.lon}
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Date/Time:</strong>{" "}
+                          {new Date(entry.dt * 1000).toLocaleString()}
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Temperature:</strong>{" "}
+                          {(entry.main.temp - 273.15).toFixed(1)}°C
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Feels Like:</strong>{" "}
+                          {(entry.main.feels_like - 273.15).toFixed(1)}°C
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Min Temperature:</strong>{" "}
+                          {(entry.main.temp_min - 273.15).toFixed(1)}°C
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Max Temperature:</strong>{" "}
+                          {(entry.main.temp_max - 273.15).toFixed(1)}°C
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Pressure:</strong> {entry.main.pressure} hPa
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Humidity:</strong> {entry.main.humidity}%
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -251,41 +312,83 @@ export default function Forecast() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 shadow-lg w-1/3">
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+          <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
             <h2 className="text-xl font-bold mb-4">Add Coordinates</h2>
-            <label className="block mb-2">
-              Latitude:
-              <input
-                type="text"
-                value={newLat}
-                onChange={(e) => setNewLat(e.target.value)}
-                className="border border-gray-300 rounded-lg p-2 w-full"
-              />
-            </label>
-            <label className="block mb-4">
-              Longitude:
-              <input
-                type="text"
-                value={newLon}
-                onChange={(e) => setNewLon(e.target.value)}
-                className="border border-gray-300 rounded-lg p-2 w-full"
-              />
-            </label>
-            <div className="flex justify-between">
+            <input
+              type="text"
+              value={newCoordinates.lat}
+              onChange={(e) =>
+                setNewCoordinates({ ...newCoordinates, lat: e.target.value })
+              }
+              placeholder="Latitude"
+              className="border border-gray-300 p-2 rounded-lg mb-4 w-full"
+            />
+            <input
+              type="text"
+              value={newCoordinates.lon}
+              onChange={(e) =>
+                setNewCoordinates({ ...newCoordinates, lon: e.target.value })
+              }
+              placeholder="Longitude"
+              className="border border-gray-300 p-2 rounded-lg mb-4 w-full"
+            />
+            <div className="flex justify-end">
               <button
-                onClick={handleModalClose}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                onClick={() => setIsModalOpen(false)}
+                className="mr-2 px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
               >
                 Cancel
               </button>
               <button
-                onClick={handleModalAddCoordinates}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                onClick={selectedData ? handleUpdate : handleAddCoordinates}
+                className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
               >
-                Add
+                {selectedData ? "Update" : "Add"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isMenuOpen && selectedData && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+          <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold mb-4">Actions</h2>
+            <div className="flex justify-between">
+              <button
+                onClick={() => {
+                  if (selectedData && selectedData.coord) {
+                    setNewCoordinates({
+                      lat: selectedData.coord.lat,
+                      lon: selectedData.coord.lon,
+                    });
+                    setIsModalOpen(true);
+                    setIsMenuOpen(false);
+                  } else {
+                    console.error("Selected data or coordinates are undefined");
+                  }
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+              >
+                Update
+              </button>
+              <button
+                onClick={() => {
+                  handleDelete(selectedData._id);
+                  setIsMenuOpen(false);
+                }}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+            <button
+              onClick={() => setIsMenuOpen(false)}
+              className="mt-4 px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

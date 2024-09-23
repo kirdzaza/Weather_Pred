@@ -17,6 +17,6 @@ export async function PUT(request, { params }) {
 export async function GET(request, { params }) {
   const { id } = params;
   await connectMongoDB();
-  const current_data = await aqiData.findOne({ _id: id });
-  return NextResponse.json({ current_data }, { status: 200 });
+  const aqi_data = await aqiData.findOne({ _id: id });
+  return NextResponse.json({ aqi_data }, { status: 200 });
 }
