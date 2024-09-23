@@ -110,10 +110,20 @@ export default function Forecast() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ lat, lon }),
+          body: JSON.stringify({
+            newlat: lat,
+            newlon: lon,
+          }),
         }
       );
-      if (!response.ok) throw new Error("Failed to update coordinates.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Error updating coordinates: ${
+            errorData.message || response.statusText
+          }`
+        );
+      }
 
       const updatedWeather = await getForecastData(lat, lon);
       setForecasts((prev) =>
@@ -183,7 +193,6 @@ export default function Forecast() {
         <div className="grid grid-cols-1 gap-6 mb-6">
           {forecasts.map((forecastData, index) => {
             const currentForecast = forecastData.list[0];
-            const date = new Date(currentForecast.dt * 1000);
             const temperature = (currentForecast.main.temp - 273.15).toFixed(1);
             const weatherIcon = `http://openweathermap.org/img/wn/${currentForecast.weather[0].icon}.png`;
 
@@ -276,30 +285,33 @@ export default function Forecast() {
                           {forecastData.city.coord.lon}
                         </p>
                         <p className="text-gray-600">
-                          <strong>Date/Time:</strong>{" "}
-                          {new Date(entry.dt * 1000).toLocaleString()}
-                        </p>
-                        <p className="text-gray-600">
                           <strong>Temperature:</strong>{" "}
                           {(entry.main.temp - 273.15).toFixed(1)}°C
                         </p>
                         <p className="text-gray-600">
                           <strong>Feels Like:</strong>{" "}
-                          {(entry.main.feels_like - 273.15).toFixed(1)}°C
+                          {(currentForecast.main.feels_like - 273.15).toFixed(
+                            1
+                          )}
+                          °C
                         </p>
                         <p className="text-gray-600">
                           <strong>Min Temperature:</strong>{" "}
-                          {(entry.main.temp_min - 273.15).toFixed(1)}°C
+                          {(currentForecast.main.temp_min - 273.15).toFixed(1)}
+                          °C
                         </p>
                         <p className="text-gray-600">
                           <strong>Max Temperature:</strong>{" "}
-                          {(entry.main.temp_max - 273.15).toFixed(1)}°C
+                          {(currentForecast.main.temp_max - 273.15).toFixed(1)}
+                          °C
                         </p>
                         <p className="text-gray-600">
-                          <strong>Pressure:</strong> {entry.main.pressure} hPa
+                          <strong>Pressure:</strong>{" "}
+                          {currentForecast.main.pressure} hPa
                         </p>
                         <p className="text-gray-600">
-                          <strong>Humidity:</strong> {entry.main.humidity}%
+                          <strong>Humidity:</strong>{" "}
+                          {currentForecast.main.humidity}%
                         </p>
                       </div>
                     ))}
@@ -309,89 +321,85 @@ export default function Forecast() {
             );
           })}
         </div>
-      </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-          <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
-            <h2 className="text-xl font-bold mb-4">Add Coordinates</h2>
-            <input
-              type="text"
-              value={newCoordinates.lat}
-              onChange={(e) =>
-                setNewCoordinates({ ...newCoordinates, lat: e.target.value })
-              }
-              placeholder="Latitude"
-              className="border border-gray-300 p-2 rounded-lg mb-4 w-full"
-            />
-            <input
-              type="text"
-              value={newCoordinates.lon}
-              onChange={(e) =>
-                setNewCoordinates({ ...newCoordinates, lon: e.target.value })
-              }
-              placeholder="Longitude"
-              className="border border-gray-300 p-2 rounded-lg mb-4 w-full"
-            />
-            <div className="flex justify-end">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="mr-2 px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={selectedData ? handleUpdate : handleAddCoordinates}
-                className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
-              >
-                {selectedData ? "Update" : "Add"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isMenuOpen && selectedData && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-          <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
-            <h2 className="text-xl font-bold mb-4">Actions</h2>
-            <div className="flex justify-between">
-              <button
-                onClick={() => {
-                  if (selectedData && selectedData.coord) {
+        {isMenuOpen && selectedData && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+            <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-4">Actions</h2>
+              <div className="flex justify-between">
+                <button
+                  onClick={() => {
                     setNewCoordinates({
-                      lat: selectedData.coord.lat,
-                      lon: selectedData.coord.lon,
+                      lat: selectedData.city.coord.lat,
+                      lon: selectedData.city.coord.lon,
                     });
                     setIsModalOpen(true);
                     setIsMenuOpen(false);
-                  } else {
-                    console.error("Selected data or coordinates are undefined");
-                  }
-                }}
-                className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
-              >
-                Update
-              </button>
+                  }}
+                  className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+                >
+                  Update
+                </button>
+                <button
+                  onClick={() => {
+                    handleDelete(selectedData._id);
+                    setIsMenuOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
               <button
-                onClick={() => {
-                  handleDelete(selectedData._id);
-                  setIsMenuOpen(false);
-                }}
-                className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600"
+                onClick={() => setIsMenuOpen(false)}
+                className="mt-4 px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
               >
-                Delete
+                Close
               </button>
             </div>
-            <button
-              onClick={() => setIsMenuOpen(false)}
-              className="mt-4 px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
-            >
-              Close
-            </button>
           </div>
-        </div>
-      )}
+        )}
+        {isModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+            <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-lg">
+              <h2 className="text-xl font-bold mb-4">
+                {selectedData ? "Update Coordinates" : "Add Coordinates"}
+              </h2>
+              <input
+                type="text"
+                value={newCoordinates.lat}
+                onChange={(e) =>
+                  setNewCoordinates({ ...newCoordinates, lat: e.target.value })
+                }
+                placeholder="Latitude"
+                className="border border-gray-300 p-2 rounded-lg mb-4 w-full"
+              />
+              <input
+                type="text"
+                value={newCoordinates.lon}
+                onChange={(e) =>
+                  setNewCoordinates({ ...newCoordinates, lon: e.target.value })
+                }
+                placeholder="Longitude"
+                className="border border-gray-300 p-2 rounded-lg mb-4 w-full"
+              />
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="mr-2 px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={selectedData ? handleUpdate : handleAddCoordinates}
+                  className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
+                >
+                  {selectedData ? "Update" : "Add"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
