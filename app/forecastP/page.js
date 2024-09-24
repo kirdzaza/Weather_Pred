@@ -19,7 +19,9 @@ export default function Forecast() {
     const fetchCoordinates = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/forecastData");
+        const response = await fetch(
+          "{process.env.NEXT_PUBLIC_API_URL}/api/forecastData"
+        );
         if (!response.ok) throw new Error("Error fetching coordinates");
         const data = await response.json();
         const coords = data.forecast_data || [];
@@ -62,13 +64,16 @@ export default function Forecast() {
     }
 
     try {
-      const response = await fetch("/api/forecastData", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ lat, lon }),
-      });
+      const response = await fetch(
+        "{process.env.NEXT_PUBLIC_API_URL}/api/forecastData",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ lat, lon }),
+        }
+      );
       if (!response.ok) throw new Error("Failed to add coordinates.");
 
       const data = await response.json();
@@ -104,7 +109,7 @@ export default function Forecast() {
         throw new Error("No selected data to update");
 
       const response = await fetch(
-        `/api/forecastData/${forecasts[selectedIndex]._id}`,
+        `{process.env.NEXT_PUBLIC_API_URL}/api/forecastData/${forecasts[selectedIndex]._id}`,
         {
           method: "PUT",
           headers: {
@@ -142,9 +147,12 @@ export default function Forecast() {
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`/api/forecastData/?id=${id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `{process.env.NEXT_PUBLIC_API_URL}/api/forecastData/?id=${id}`,
+        {
+          method: "DELETE",
+        }
+      );
       if (!response.ok) throw new Error("Failed to delete data.");
       setForecasts((prev) => prev.filter((data) => data._id !== id));
       setError("");

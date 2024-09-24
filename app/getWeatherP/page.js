@@ -17,7 +17,9 @@ export default function CurrentWeather() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/currentData");
+        const response = await fetch(
+          "{process.env.NEXT_PUBLIC_API_URL}/api/currentData"
+        );
         if (!response.ok) throw new Error("Error fetching data");
         const data = await response.json();
         const coords = data.current_data || [];
@@ -57,13 +59,16 @@ export default function CurrentWeather() {
     });
 
     try {
-      const response = await fetch("/api/currentData", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ lat: parseFloat(lat), lon: parseFloat(lon) }),
-      });
+      const response = await fetch(
+        "{process.env.NEXT_PUBLIC_API_URL}/api/currentData",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ lat: parseFloat(lat), lon: parseFloat(lon) }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -102,16 +107,19 @@ export default function CurrentWeather() {
       if (!selectedData || !selectedData._id)
         throw new Error("No selected data to update");
 
-      const response = await fetch(`/api/currentData/${selectedData._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          newlat: parseFloat(lat),
-          newlon: parseFloat(lon),
-        }),
-      });
+      const response = await fetch(
+        `{process.env.NEXT_PUBLIC_API_URL}/api/currentData/${selectedData._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            newlat: parseFloat(lat),
+            newlon: parseFloat(lon),
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -144,9 +152,12 @@ export default function CurrentWeather() {
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`/api/currentData/?id=${id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `{process.env.NEXT_PUBLIC_API_URL}/api/currentData/?id=${id}`,
+        {
+          method: "DELETE",
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(

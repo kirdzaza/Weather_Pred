@@ -19,7 +19,9 @@ export default function AQIWeather() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/aqiData");
+        const response = await fetch(
+          "{process.env.NEXT_PUBLIC_API_URL}/api/aqiData"
+        );
         if (!response.ok) throw new Error("Error fetching data");
         const data = await response.json();
         const coords = data.aqi_data || [];
@@ -69,13 +71,16 @@ export default function AQIWeather() {
     }
 
     try {
-      const response = await fetch("/api/aqiData", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ lat, lon }),
-      });
+      const response = await fetch(
+        "{process.env.NEXT_PUBLIC_API_URL}/api/aqiData",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ lat, lon }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -119,16 +124,19 @@ export default function AQIWeather() {
       if (!selectedData || !selectedData._id)
         throw new Error("No selected data to update");
 
-      const response = await fetch(`/api/aqiData/${selectedData._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          newlat: parsedLat,
-          newlon: parsedLon,
-        }),
-      });
+      const response = await fetch(
+        `{process.env.NEXT_PUBLIC_API_URL}/api/aqiData/${selectedData._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            newlat: parsedLat,
+            newlon: parsedLon,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -155,9 +163,12 @@ export default function AQIWeather() {
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`/api/aqiData/${id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/aqiData/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to delete data.");
