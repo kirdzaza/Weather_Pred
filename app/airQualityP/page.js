@@ -20,7 +20,7 @@ export default function AQIWeather() {
       setLoading(true);
       try {
         const response = await fetch(
-          "{process.env.NEXT_PUBLIC_API_URL}/api/aqiData"
+          `${process.env.NEXT_PUBLIC_API_URL}/api/aqiData`
         );
         if (!response.ok) throw new Error("Error fetching data");
         const data = await response.json();
@@ -72,7 +72,7 @@ export default function AQIWeather() {
 
     try {
       const response = await fetch(
-        "{process.env.NEXT_PUBLIC_API_URL}/api/aqiData",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/aqiData`,
         {
           method: "POST",
           headers: {
@@ -125,7 +125,7 @@ export default function AQIWeather() {
         throw new Error("No selected data to update");
 
       const response = await fetch(
-        `{process.env.NEXT_PUBLIC_API_URL}/api/aqiData/${selectedData._id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/aqiData/${selectedData._id}`,
         {
           method: "PUT",
           headers: {

@@ -20,7 +20,7 @@ export default function Forecast() {
       setLoading(true);
       try {
         const response = await fetch(
-          "{process.env.NEXT_PUBLIC_API_URL}/api/forecastData"
+          `${process.env.NEXT_PUBLIC_API_URL}/api/forecastData`
         );
         if (!response.ok) throw new Error("Error fetching coordinates");
         const data = await response.json();
@@ -65,7 +65,7 @@ export default function Forecast() {
 
     try {
       const response = await fetch(
-        "{process.env.NEXT_PUBLIC_API_URL}/api/forecastData",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/forecastData`,
         {
           method: "POST",
           headers: {
@@ -109,7 +109,7 @@ export default function Forecast() {
         throw new Error("No selected data to update");
 
       const response = await fetch(
-        `{process.env.NEXT_PUBLIC_API_URL}/api/forecastData/${forecasts[selectedIndex]._id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/forecastData/${forecasts[selectedIndex]._id}`,
         {
           method: "PUT",
           headers: {
@@ -148,7 +148,7 @@ export default function Forecast() {
   const handleDelete = async (id) => {
     try {
       const response = await fetch(
-        `{process.env.NEXT_PUBLIC_API_URL}/api/forecastData/?id=${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/forecastData/?id=${id}`,
         {
           method: "DELETE",
         }

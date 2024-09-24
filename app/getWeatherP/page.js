@@ -18,7 +18,7 @@ export default function CurrentWeather() {
       setLoading(true);
       try {
         const response = await fetch(
-          "{process.env.NEXT_PUBLIC_API_URL}/api/currentData"
+          `${process.env.NEXT_PUBLIC_API_URL}/api/currentData`
         );
         if (!response.ok) throw new Error("Error fetching data");
         const data = await response.json();
@@ -60,7 +60,7 @@ export default function CurrentWeather() {
 
     try {
       const response = await fetch(
-        "{process.env.NEXT_PUBLIC_API_URL}/api/currentData",
+        `${process.env.NEXT_PUBLIC_API_URL}/api/currentData`,
         {
           method: "POST",
           headers: {
@@ -108,7 +108,7 @@ export default function CurrentWeather() {
         throw new Error("No selected data to update");
 
       const response = await fetch(
-        `{process.env.NEXT_PUBLIC_API_URL}/api/currentData/${selectedData._id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/currentData/${selectedData._id}`,
         {
           method: "PUT",
           headers: {
@@ -153,7 +153,7 @@ export default function CurrentWeather() {
   const handleDelete = async (id) => {
     try {
       const response = await fetch(
-        `{process.env.NEXT_PUBLIC_API_URL}/api/currentData/?id=${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/currentData/?id=${id}`,
         {
           method: "DELETE",
         }
