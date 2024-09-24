@@ -4,7 +4,7 @@ export default async function getWeather(lat, lon) {
   const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
   try {
     const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`
+      `http://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`
     );
 
     if (!response.ok) {
