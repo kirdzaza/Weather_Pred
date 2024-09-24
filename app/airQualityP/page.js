@@ -95,7 +95,6 @@ export default function AQIWeather() {
       setError(""); // Clear error
       window.location.reload();
     } catch (err) {
-      setError(err.message);
       window.location.reload();
     }
   };
@@ -168,7 +167,7 @@ export default function AQIWeather() {
   const handleDelete = async (id) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/aqiData/${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/aqiData/?id=${id}`,
         {
           method: "DELETE",
         }
