@@ -93,8 +93,10 @@ export default function AQIWeather() {
       setNewCoordinates({ lat: "", lon: "" });
       setIsModalOpen(false);
       setError(""); // Clear error
+      window.location.reload();
     } catch (err) {
       setError(err.message);
+      window.location.reload();
     }
   };
 
@@ -156,8 +158,10 @@ export default function AQIWeather() {
       setIsModalOpen(false);
       setIsMenuOpen(false);
       setError(""); // Clear error
+      window.location.reload();
     } catch (err) {
       setError(err.message);
+      window.location.reload();
     }
   };
 
@@ -176,8 +180,10 @@ export default function AQIWeather() {
       setWeatherData((prev) => prev.filter((data) => data._id !== id));
       setIsMenuOpen(false);
       setError(""); // Clear error
+      window.location.reload();
     } catch (err) {
       setError(err.message);
+      window.location.reload();
     }
   };
 

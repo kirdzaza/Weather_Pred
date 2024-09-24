@@ -140,8 +140,10 @@ export default function Forecast() {
       setSelectedIndex(null);
       setIsModalOpen(false);
       setError(null);
+      window.location.reload();
     } catch (err) {
       setError(err.message);
+      window.location.reload();
     }
   };
 
@@ -156,8 +158,10 @@ export default function Forecast() {
       if (!response.ok) throw new Error("Failed to delete data.");
       setForecasts((prev) => prev.filter((data) => data._id !== id));
       setError("");
+      window.location.reload();
     } catch (err) {
       setError(err.message);
+      window.location.reload();
     }
   };
 
