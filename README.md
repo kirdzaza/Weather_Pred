@@ -19,7 +19,7 @@
 </details>
 
 ## Team members
-- **Natthapol Kaewmanee (https://github.com/kirdzaza/Weather_Pred)**
+- **Natthapol Kaewmanee [ repo ](https://github.com/kirdzaza/Weather_Pred)**
 
 <!-- ABOUT THE PROJECT -->
 ## Project Project description  
