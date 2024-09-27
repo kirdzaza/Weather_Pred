@@ -259,6 +259,10 @@ export default function Forecast() {
                 <p className="text-gray-600">
                   <strong>Humidity:</strong> {currentForecast.main.humidity}%
                 </p>
+                <p className="text-gray-600">
+                  <strong>Time:</strong>{" "}
+                  {new Date(currentForecast.dt_txt).toLocaleString()}
+                </p>
                 <button
                   onClick={() =>
                     setShowAllDetails((prev) => ({
@@ -302,28 +306,28 @@ export default function Forecast() {
                         </p>
                         <p className="text-gray-600">
                           <strong>Feels Like:</strong>{" "}
-                          {(currentForecast.main.feels_like - 273.15).toFixed(
-                            1
-                          )}
+                          {(entry.main.feels_like - 273.15).toFixed(1)}
                           °C
                         </p>
                         <p className="text-gray-600">
                           <strong>Min Temperature:</strong>{" "}
-                          {(currentForecast.main.temp_min - 273.15).toFixed(1)}
+                          {(entry.main.temp_min - 273.15).toFixed(1)}
                           °C
                         </p>
                         <p className="text-gray-600">
                           <strong>Max Temperature:</strong>{" "}
-                          {(currentForecast.main.temp_max - 273.15).toFixed(1)}
+                          {(entry.main.temp_max - 273.15).toFixed(1)}
                           °C
                         </p>
                         <p className="text-gray-600">
-                          <strong>Pressure:</strong>{" "}
-                          {currentForecast.main.pressure} hPa
+                          <strong>Pressure:</strong> {entry.main.pressure} hPa
                         </p>
                         <p className="text-gray-600">
-                          <strong>Humidity:</strong>{" "}
-                          {currentForecast.main.humidity}%
+                          <strong>Humidity:</strong> {entry.main.humidity}%
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Time:</strong>{" "}
+                          {new Date(entry.dt_txt).toLocaleString()}
                         </p>
                       </div>
                     ))}
