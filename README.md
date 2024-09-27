@@ -1,5 +1,5 @@
 
-  <h3 align="center">Weather_Pred</h3>
+  <h3 align="center">Weather Pred</h3>
 
  
 
