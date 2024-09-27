@@ -18,10 +18,11 @@
   </ol>
 </details>
 
-
+## Team members
+- **Natthapol Kaewmanee (https://github.com/kirdzaza/Weather_Pred)**
 
 <!-- ABOUT THE PROJECT -->
-## About The Project
+## Project Project description  
 
 ![weather_prec](https://github.com/user-attachments/assets/e17eed65-288c-4b6d-8f84-ba01ac3687c1)
 
