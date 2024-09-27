@@ -44,7 +44,6 @@ This project is designed to predict **Weather** and **Air Quality Index (AQI)** 
 - **Tailwind CSS** for modern, responsive UI design.
 - **MongoDB** for data storage and management.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
@@ -55,7 +54,6 @@ This project is designed to predict **Weather** and **Air Quality Index (AQI)** 
 * [![Node.js][Node.js.com]][Node.js-url]
 * [![TailwindCSS][TailwindCSS.com]][TailwindCSS-url]
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
@@ -85,7 +83,6 @@ _Below is an example of how you can instruct your audience on installing and set
    ```
 
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
