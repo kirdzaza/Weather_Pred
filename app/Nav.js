@@ -5,7 +5,7 @@ function Nav() {
   return (
     <div className="w-full h-16 bg-gray-800 text-white fixed top-0 left-0 z-50">
       <div className="flex items-center justify-between h-full px-4">
-        <h1 className="text-xl font-bold">Weather Prec</h1>
+        <h1 className="text-xl font-bold">Weather Pred</h1>
         <nav>
           <ul className="flex space-x-4">
             <li>
